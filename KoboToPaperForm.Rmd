@@ -25,9 +25,11 @@ koboQues <- read_excel(file, sheet = "survey")
 ##Read Choices
 koboChoices <- read_excel(file, sheet = "choices")
 
+
+
 ##Creating table 
 exTableEnglish <- koboQues %>% 
-  select(relevant,type,`label::english`,`hint::english`,`constraint_message::english`) %>% 
+  select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
   rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
   filter(!(is.na(Name))) %>% 
   filter(!(Name %in% c("start","end","today"))) %>% 
@@ -52,7 +54,7 @@ paperFormEnglish <- exTableEnglish %>%
 ```
 
 ```{r}
-##Writing to excel and styling
+##Writing t excel and styling
 #Creating the workbook
 wb <- createWorkbook()
 
@@ -62,25 +64,47 @@ addWorksheet(wb, sheetName = "paperEnglish")
 
 ##Adding data Headers
 for (i in 1:length(colnames(paperFormEnglish))){
-  writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i], startRow = 1, startCol = i)  
+  writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 1, startCol = i)  
 }
 
 ##Adding data table
 for (i in 1:nrow(paperFormEnglish)){
-  writeData(wb, "paperEnglish", x = paperFormEnglish[i,], startRow = 1 + i, col.names = F)
+  writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:6], startRow = 1 + i, col.names = F)
 }
 
 
+##Merge
+
+rowIdSection <- paperFormEnglish %>% 
+  rowid_to_column() %>% 
+  filter(Type == "begin_group")
+
+rowIdSectionList <- rowIdSection$rowid
+
+for (i in rowIdSectionList){
+  mergeCells(wb, sheet = "paperEnglish", rows = i + 1, cols = 1:5)
+}
+
+for(i in 1:nrow(rowIdSection)){
+  writeData(wb, sheet = "paperEnglish", rowIdSection$Name[i], startCol = 1, startRow = sum(rowIdSection$rowid[i] + 1))
+}
+
 #Styling
-columnName <- createStyle(fontName = "Arial Narrow", fontSize = 12,
+styleName <- createStyle(fontName = "Arial Narrow", fontSize = 12,
                           wrapText = T, valign = "top")
 
 addStyle(wb, "paperEnglish", columnName, cols = 2, rows = 2:sum(nrow(paperFormEnglish) + 1), gridExpand = T)
 
+sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 14,
+                           halign = "center", fgFill = "#efefef", textDecoration = "bold")
 
+for (i in rowIdSectionList){
+   addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 1, cols = 1:5, gridExpand = F)
+}
 
 ##Column Width and Row width
 setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 75)
+
 
 saveWorkbook(wb, "output.xlsx", overwrite = T)
 
