@@ -1,3 +1,15 @@
+---
+title: "koboToPaperForm"
+author: "Abraham Azar"
+date: "11/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(sf,tidyverse, readxl, cowplot, DT, dplyr, utils, rlang,expss, ggplot2, data.table, openxlsx)
 
@@ -6,11 +18,12 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 rm(list = ls())
 
+file <- choose.files("Please select the Kobo tool")
 ##Read questions
-koboQues <- read_excel("data/hsosKoboTool.xlsx", sheet = "survey")
+koboQues <- read_excel(file, sheet = "survey")
 
 ##Read Choices
-koboChoices <- read_excel("data/hsosKoboTool.xlsx", sheet = "choices")
+koboChoices <- read_excel(file, sheet = "choices")
 
 ##Creating table 
 exTableEnglish <- koboQues %>% 
@@ -35,6 +48,10 @@ paperFormEnglish <- exTableEnglish %>%
   left_join(exChoicesEnglish, by= "Type") %>% 
   filter(!(Type %in% c("end_group"))) 
 
+
+```
+
+```{r}
 ##Writing to excel and styling
 #Creating the workbook
 wb <- createWorkbook()
@@ -66,3 +83,6 @@ addStyle(wb, "paperEnglish", columnName, cols = 2, rows = 2:sum(nrow(paperFormEn
 setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 75)
 
 saveWorkbook(wb, "output.xlsx", overwrite = T)
+
+```
+
