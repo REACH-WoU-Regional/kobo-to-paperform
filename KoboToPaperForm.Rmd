@@ -47,7 +47,8 @@ exTableEnglish <- koboQues %>%
   filter(!(is.na(Name))) %>% 
   filter(!(Name %in% c("start","end","today"))) %>% 
   mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+  mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
 }
 
 
@@ -266,7 +267,6 @@ setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
 excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
 saveWorkbook(wb, excelOutputName, overwrite = T)
 }
-
 
 ```
 
