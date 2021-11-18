@@ -27,9 +27,10 @@ koboQues <- read_excel(file, sheet = "survey")
 ##Read Choices
 koboChoices <- read_excel(file, sheet = "choices")
 
+title <- dlgList(choices = c("Included", "Not included"), multiple = F, preselect = NULL, title = "Relevancy")$res
 
-
-##Creating table 
+if (title == "Included"){
+  ##Creating table 
 exTableEnglish <- koboQues %>% 
   select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
   rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
@@ -37,6 +38,18 @@ exTableEnglish <- koboQues %>%
   filter(!(Name %in% c("start","end","today"))) %>% 
   mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
                        ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+
+} else {
+    ##Creating table 
+exTableEnglish <- koboQues %>% 
+  select(type,`label::english`,`hint::english`,`constraint_message::english`) %>% 
+  rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`) %>% 
+  filter(!(is.na(Name))) %>% 
+  filter(!(Name %in% c("start","end","today"))) %>% 
+  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+}
+
 
 
 ##Choices table
@@ -59,7 +72,8 @@ paperFormEnglish <- paperFormEnglish %>%
 ```
 
 ```{r}
-##Writing t excel and styling
+if (title == "Included"){
+  ##Writing t excel and styling
 #Creating the workbook
 wb <- createWorkbook()
 
@@ -155,6 +169,104 @@ setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
 ##Excel Output
 excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
 saveWorkbook(wb, excelOutputName, overwrite = T)
+} else {
+  ##Writing t excel and styling
+#Creating the workbook
+wb <- createWorkbook()
+
+#Adding the worksheet
+addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
+
+
+##Adding data Headers
+
+##Setting up the title for the questionnaire
+title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)", "Market Monitoring (MM)","Emergency Needs Tracking (ENT)"), multiple = F, title = "Select the title of your Questionnaire")$res
+month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
+titleQues <- paste0(title," ",month," Questionnaire")
+
+mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:4)
+writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
+
+for (i in 1:length(colnames(paperFormEnglish))){
+  writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+}
+
+
+##Adding data table
+for (i in 1:nrow(paperFormEnglish)){
+  writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:5], startRow = 2 + i, colNames = F)
+}
+
+
+##Merge
+
+rowIdSection <- paperFormEnglish %>% 
+  rowid_to_column() %>% 
+  filter(Type == "begin_group")
+
+rowIdSectionList <- rowIdSection$rowid
+
+for (i in rowIdSectionList){
+  mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
+}
+
+for(i in 1:nrow(rowIdSection)){
+  writeData(wb, sheet = "paperEnglish", rowIdSection$Name[i], startCol = 1, startRow = sum(rowIdSection$rowid[i] + 2))
+}
+
+#Styling
+
+##Adding Style for the whole data
+styleName <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                          wrapText = T, valign = "top", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+
+addStyle(wb, "paperEnglish", styleName, cols = 1:4, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
+
+
+##Styling sections
+sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                           halign = "center", fgFill = "#bfbfbf", textDecoration = "bold", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+
+for (i in rowIdSectionList){
+   addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
+}
+
+##Styling the title
+titleStyle <- createStyle(fontName = "Arial Narrow", textDecoration = "bold", fontSize = 18,
+                          fgFill = "#ddd9c4", valign = "center", halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:4, gridExpand = F)
+
+##Styling the empty cells in Choices
+underscoreOptions <- paperFormEnglish %>% 
+  rowid_to_column() %>% 
+  filter(`Choices English` == "____________________")
+
+underscoreOptionsList <- underscoreOptions$rowid
+underscoreStyle <- createStyle(fontName = "Arial Narrow", fontSize = "16", valign = "bottom", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+
+for (i in underscoreOptionsList){
+  addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 4, gridExpand = F)
+}
+
+##Styling the table header
+tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDecoration = "bold",
+                                halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:4, gridExpand = F)
+
+##Column Width and Row width
+setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 120)
+setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 35)
+setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 35)
+setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 53)
+setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
+
+
+##Excel Output
+excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
+saveWorkbook(wb, excelOutputName, overwrite = T)
+}
+
 
 ```
 
