@@ -166,7 +166,6 @@ setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 20)
 setColWidths(wb, sheet = "paperEnglish", cols = 5, widths = 53)
 setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
 
-
 ##Excel Output
 excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
 saveWorkbook(wb, excelOutputName, overwrite = T)
