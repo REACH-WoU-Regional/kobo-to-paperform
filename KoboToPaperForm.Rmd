@@ -27,15 +27,22 @@ koboQues <- read_excel(file, sheet = "survey")
 ##Read Choices
 koboChoices <- read_excel(file, sheet = "choices")
 
-title <- dlgList(choices = c("Included", "Not included"), multiple = F, preselect = NULL, title = "Relevancy")$res
+relevancySelection <- dlgList(choices = c("Included", "Not included"), multiple = F, preselect = NULL, title = "Relevancy")$res
 
-if (title == "Included"){
+if (relevancySelection == "Included"){
   ##Creating table 
 exTableEnglish <- koboQues %>% 
   select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
   rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
   filter(!(is.na(Name))) %>% 
   filter(!(Name %in% c("start","end","today"))) %>% 
+  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+exTableArabic <- koboQues %>% 
+  select(type,relevant,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
+  rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`, "Relevancy" = relevant) %>% 
+  filter(!(is.na(Name))) %>% 
+  filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم"))) %>% 
   mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
                        ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
 
@@ -49,6 +56,15 @@ exTableEnglish <- koboQues %>%
   mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
                        ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
   mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
+
+exTableArabic <- koboQues %>% 
+  select(type,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
+  rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`) %>% 
+  filter(!(is.na(Name))) %>% 
+  filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم"))) %>% 
+  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+  mutate(Name = ifelse(Name == "السعر ${Calc_choice_name}", "السعر:",Name))
 }
 
 
@@ -61,211 +77,295 @@ exChoicesEnglish <- koboChoices %>%
   summarise_all(funs(toString(na.omit(.)))) %>% 
   rename("Type" = list_name, "Choices English" = `label::english`)
 
+exChoicesArabic <- koboChoices %>% 
+  select(list_name, `label::arabic`) %>% 
+  filter(!(is.na(list_name))) %>% 
+  group_by(list_name) %>% 
+  summarise_all(funs(toString(na.omit(.)))) %>% 
+  rename("Type" = list_name, "Choices Arabic" = `label::arabic`)
+
 ##combined table
 paperFormEnglish <- exTableEnglish %>% 
   left_join(exChoicesEnglish, by= "Type") %>% 
   filter(!(Type %in% c("end_group")))
 
+paperFormArabic <- exTableArabic %>% 
+  left_join(exChoicesArabic, by= "Type") %>% 
+  filter(!(Type %in% c("end_group")))
+
 paperFormEnglish <- paperFormEnglish %>% 
   mutate(`Choices English` = ifelse(is.na(`Choices English`) == T, "____________________",`Choices English`))
 
+paperFormArabic <- paperFormArabic %>% 
+  mutate(`Choices Arabic` = ifelse(is.na(`Choices Arabic`) == T, "____________________",`Choices Arabic`))
+
+paperFormArabic <- paperFormArabic[c(1,6,5,4,3,2)]
 
 ```
 
 ```{r}
-if (title == "Included"){
-  ##Writing t excel and styling
-#Creating the workbook
-wb <- createWorkbook()
+#Styling
+styleNameEng <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                            wrapText = T, valign = "top", border = c("top","bottom","left","right"), 
+                            borderColour = "black", borderStyle = "thin")
 
-#Adding the worksheet
-addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
+styleNameAra <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                            wrapText = T, valign = "top", border = c("top","bottom","left","right"), 
+                            borderColour = "black", borderStyle = "thin", halign = "right")
+
+sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                               halign = "center", fgFill = "#bfbfbf", 
+                           textDecoration = "bold", border = c("top","bottom","left","right"), 
+                           borderColour = "black", borderStyle = "thin")
+
+titleStyle <- createStyle(fontName = "Arial Narrow", textDecoration = "bold", fontSize = 18,
+                          fgFill = "#ddd9c4", valign = "center", halign = "center", 
+                          border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
 
 
-##Adding data Headers
+underscoreStyle <- createStyle(fontName = "Arial Narrow", fontSize = "16", valign = "bottom", 
+                                   border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+    
+tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDecoration = "bold",
+                                halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+```
 
+```{r}
+##Extra Add-ons for the output
 ##Setting up the title for the questionnaire
-title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)", "Market Monitoring (MM)","Emergency Needs Tracking (ENT)"), multiple = F, title = "Select the title of your Questionnaire")$res
+
+title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)",
+                             "Market Monitoring (MM)",
+                             "Emergency Needs Tracking (ENT)"),
+                 multiple = F,
+                 title = "Select the title of your Questionnaire")$res
 month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
 titleQues <- paste0(title," ",month," Questionnaire")
 
-mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:5)
-writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
-
-for (i in 1:length(colnames(paperFormEnglish))){
-  writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
-}
-
-
-##Adding data table
-for (i in 1:nrow(paperFormEnglish)){
-  writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:6], startRow = 2 + i, colNames = F)
-}
-
-
-##Merge
-
-rowIdSection <- paperFormEnglish %>% 
+rowIdSectionEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
   filter(Type == "begin_group")
+    
+rowIdSectionListEng <- rowIdSectionEng$rowid
 
-rowIdSectionList <- rowIdSection$rowid
+rowIdSectionAra <- paperFormArabic %>% 
+  rowid_to_column() %>% 
+  filter(Type == "begin_group")
+    
+rowIdSectionListAra <- rowIdSectionAra$rowid
 
-for (i in rowIdSectionList){
-  mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
-}
-
-for(i in 1:nrow(rowIdSection)){
-  writeData(wb, sheet = "paperEnglish", rowIdSection$Name[i], startCol = 1, startRow = sum(rowIdSection$rowid[i] + 2))
-}
-
-#Styling
-
-##Adding Style for the whole data
-styleName <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                          wrapText = T, valign = "top", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-
-addStyle(wb, "paperEnglish", styleName, cols = 1:5, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
-
-
-##Styling sections
-sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                           halign = "center", fgFill = "#bfbfbf", textDecoration = "bold", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-
-for (i in rowIdSectionList){
-   addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
-}
-
-##Styling the title
-titleStyle <- createStyle(fontName = "Arial Narrow", textDecoration = "bold", fontSize = 18,
-                          fgFill = "#ddd9c4", valign = "center", halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
-
-##Styling the empty cells in Choices
-underscoreOptions <- paperFormEnglish %>% 
+underscoreOptionsEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
   filter(`Choices English` == "____________________")
+underscoreOptionsListEng <- underscoreOptionsEng$rowid
 
-underscoreOptionsList <- underscoreOptions$rowid
-underscoreStyle <- createStyle(fontName = "Arial Narrow", fontSize = "16", valign = "bottom", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
+underscoreOptionsAra <- paperFormArabic %>% 
+   rowid_to_column() %>% 
+   filter(`Choices Arabic` == "____________________")
+    
+underscoreOptionsListAra <- underscoreOptionsAra$rowid
+```
 
-for (i in underscoreOptionsList){
-  addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 5, gridExpand = F)
-}
 
-##Styling the table header
-tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDecoration = "bold",
-                                halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:5, gridExpand = F)
+```{r}
 
-##Column Width and Row width
-setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 58)
-setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 98)
-setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 15)
-setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 20)
-setColWidths(wb, sheet = "paperEnglish", cols = 5, widths = 53)
-setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
+##Output Creation
+wb <- createWorkbook()
+    
+#Adding the worksheet
+addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
+addWorksheet(wb, sheetName = "paperArabic", zoom = 80)
 
-##Excel Output
-excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
-saveWorkbook(wb, excelOutputName, overwrite = T)
+if (relevancySelection == "Included"){
+
+    ##Adding data Headers
+    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:5)
+    writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
+    mergeCells(wb, sheet = "paperArabic", rows = 1, cols = 1:5)
+    writeData(wb, sheet = "paperArabic", titleQues, startCol = 1, startRow = 1)
+    
+    #English
+    for (i in 1:length(colnames(paperFormEnglish))){
+      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+    }
+    #Arabic
+    for (i in 1:length(colnames(paperFormArabic))){
+      writeData(wb, "paperArabic", x = colnames(paperFormArabic)[i + 1], startRow = 2, startCol = i)  
+    }
+
+    ##Adding data table English
+    for (i in 1:nrow(paperFormEnglish)){
+      writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:6], startRow = 2 + i, colNames = F)
+    }
+    ##Adding data table Arabic
+    for (i in 1:nrow(paperFormArabic)){
+      writeData(wb, "paperArabic", x = paperFormArabic[i,2:6], startRow = 2 + i, colNames = F)
+    }
+    
+    ##Merge English beginning of section and adding data
+    for (i in rowIdSectionListEng){
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
+    }
+    
+    for(i in 1:nrow(rowIdSectionEng)){
+      writeData(wb, sheet = "paperEnglish", rowIdSectionEng$Name[i], startCol = 1, startRow = sum(rowIdSectionEng$rowid[i] + 2))
+    }
+    
+    ##Merge Arabic beginning of section and adding data
+    for (i in rowIdSectionListAra){
+      mergeCells(wb, sheet = "paperArabic", rows = i + 2, cols = 1:5)
+    }
+    
+    for(i in 1:nrow(rowIdSectionAra)){
+      writeData(wb, sheet = "paperArabic", rowIdSectionAra$Name[i], startCol = 1, startRow = sum(rowIdSectionAra$rowid[i] + 2))
+    }
+    
+    #Styling
+    ##Adding Style for the whole data
+    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:5, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
+    addStyle(wb, "paperArabic", styleNameAra, cols = 1:5, rows = 3:sum(nrow(paperFormArabic) + 2), gridExpand = T)
+    
+    ##Styling sections
+    #English
+    for (i in rowIdSectionListEng){
+       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
+    }
+    
+    #Arabic
+    for (i in rowIdSectionListAra){
+       addStyle(wb, sheet = "paperArabic", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
+    }
+    
+    ##Styling the title
+    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
+    addStyle(wb, sheet = "paperArabic",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
+    
+    ##Styling the empty cells in Choices English
+    for (i in underscoreOptionsListEng){
+      addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 5, gridExpand = F)
+    }
+    
+    ##Styling the empty cells in Choices Arabic
+    for (i in underscoreOptionsListAra){
+      addStyle(wb, sheet = "paperArabic", underscoreStyle, rows = i + 2, cols = 5, gridExpand = F)
+    }
+    
+    ##Styling the table header
+    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:5, gridExpand = F)
+    addStyle(wb, sheet = "paperArabic", tableHeaderStyle, rows = 2, cols = 1:5, gridExpand = F)
+    
+    ##Column Width and Row width English
+    setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 58)
+    setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 98)
+    setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 15)
+    setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 20)
+    setColWidths(wb, sheet = "paperEnglish", cols = 5, widths = 53)
+    setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
+    
+    ##Column Width and Row width Arabic
+    setColWidths(wb, sheet = "paperArabic", cols = 1, widths = 53)
+    setColWidths(wb, sheet = "paperArabic", cols = 2, widths = 20)
+    setColWidths(wb, sheet = "paperArabic", cols = 3, widths = 15)
+    setColWidths(wb, sheet = "paperArabic", cols = 4, widths = 98)
+    setColWidths(wb, sheet = "paperArabic", cols = 5, widths = 58)
+    setRowHeights(wb, sheet = "paperArabic", rows = 1, heights = 44)
 } else {
-  ##Writing t excel and styling
-#Creating the workbook
-wb <- createWorkbook()
 
-#Adding the worksheet
-addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
-
-
-##Adding data Headers
-
-##Setting up the title for the questionnaire
-title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)", "Market Monitoring (MM)","Emergency Needs Tracking (ENT)"), multiple = F, title = "Select the title of your Questionnaire")$res
-month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
-titleQues <- paste0(title," ",month," Questionnaire")
-
-mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:4)
-writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
-
-for (i in 1:length(colnames(paperFormEnglish))){
-  writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+    ##Adding data Headers
+    
+    ##Setting up the title for the questionnaire
+    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:4)
+    writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
+    mergeCells(wb, sheet = "paperArabic", rows = 1, cols = 1:4)
+    writeData(wb, sheet = "paperArabic", titleQues, startCol = 1, startRow = 1)
+    
+    #English
+    for (i in 1:length(colnames(paperFormEnglish))){
+      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+    }
+    #Arabic
+    for (i in 1:length(colnames(paperFormArabic))){
+      writeData(wb, "paperArabic", x = colnames(paperFormArabic)[i + 1], startRow = 2, startCol = i)  
+    }
+    
+    ##Adding data table English
+    for (i in 1:nrow(paperFormEnglish)){
+      writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:5], startRow = 2 + i, colNames = F)
+    }
+    ##Adding data table Arabic
+    for (i in 1:nrow(paperFormArabic)){
+      writeData(wb, "paperArabic", x = paperFormArabic[i,2:5], startRow = 2 + i, colNames = F)
+    }
+    
+    ##Merge English beginning of section and adding data
+    for (i in rowIdSectionList){
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
+    }
+    
+    for(i in 1:nrow(rowIdSection)){
+      writeData(wb, sheet = "paperEnglish", rowIdSection$Name[i], startCol = 1, startRow = sum(rowIdSection$rowid[i] + 2))
+    }
+    
+    ##Merge Arabic beginning of section and adding data
+    for (i in rowIdSectionListAra){
+      mergeCells(wb, sheet = "paperArabic", rows = i + 2, cols = 1:4)
+    }
+    
+    for(i in 1:nrow(rowIdSectionAra)){
+      writeData(wb, sheet = "paperArabic", rowIdSectionAra$Name[i], startCol = 1, startRow = sum(rowIdSectionAra$rowid[i] + 2))
+    }
+    
+    #Styling
+    ##Adding Style for the whole data
+    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:4, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
+    addStyle(wb, "paperArabic", styleNameAra, cols = 1:4, rows = 3:sum(nrow(paperFormArabic) + 2), gridExpand = T)
+    
+    ##Styling sections
+    #English
+    for (i in rowIdSectionList){
+       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
+    }
+    
+    #Arabic
+    for (i in rowIdSectionListAra){
+       addStyle(wb, sheet = "paperArabic", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
+    }
+    
+    ##Styling the title
+    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:4, gridExpand = F)
+    addStyle(wb, sheet = "paperArabic",titleStyle, rows = 1, cols = 1:4, gridExpand = F)
+    
+    ##Styling the empty cells in Choices English
+    for (i in underscoreOptionsList){
+      addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 4, gridExpand = F)
+    }
+    
+    ##Styling the empty cells in Choices Arabic
+    for (i in underscoreOptionsListAra){
+      addStyle(wb, sheet = "paperArabic", underscoreStyle, rows = i + 2, cols = 4, gridExpand = F)
+    }
+    
+    ##Styling the table header
+    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:4, gridExpand = F)
+    addStyle(wb, sheet = "paperArabic", tableHeaderStyle, rows = 2, cols = 1:4, gridExpand = F)
+    
+    ##Column Width and Row width
+    setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 120)
+    setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 35)
+    setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 35)
+    setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 53)
+    setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
+    
+    ##Column Width and Row width Arabic
+    setColWidths(wb, sheet = "paperArabic", cols = 1, widths = 53)
+    setColWidths(wb, sheet = "paperArabic", cols = 2, widths = 35)
+    setColWidths(wb, sheet = "paperArabic", cols = 3, widths = 35)
+    setColWidths(wb, sheet = "paperArabic", cols = 4, widths = 120)
+    setRowHeights(wb, sheet = "paperArabic", rows = 1, heights = 44)
 }
-
-
-##Adding data table
-for (i in 1:nrow(paperFormEnglish)){
-  writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:5], startRow = 2 + i, colNames = F)
-}
-
-
-##Merge
-
-rowIdSection <- paperFormEnglish %>% 
-  rowid_to_column() %>% 
-  filter(Type == "begin_group")
-
-rowIdSectionList <- rowIdSection$rowid
-
-for (i in rowIdSectionList){
-  mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
-}
-
-for(i in 1:nrow(rowIdSection)){
-  writeData(wb, sheet = "paperEnglish", rowIdSection$Name[i], startCol = 1, startRow = sum(rowIdSection$rowid[i] + 2))
-}
-
-#Styling
-
-##Adding Style for the whole data
-styleName <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                          wrapText = T, valign = "top", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-
-addStyle(wb, "paperEnglish", styleName, cols = 1:4, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
-
-
-##Styling sections
-sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                           halign = "center", fgFill = "#bfbfbf", textDecoration = "bold", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-
-for (i in rowIdSectionList){
-   addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
-}
-
-##Styling the title
-titleStyle <- createStyle(fontName = "Arial Narrow", textDecoration = "bold", fontSize = 18,
-                          fgFill = "#ddd9c4", valign = "center", halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:4, gridExpand = F)
-
-##Styling the empty cells in Choices
-underscoreOptions <- paperFormEnglish %>% 
-  rowid_to_column() %>% 
-  filter(`Choices English` == "____________________")
-
-underscoreOptionsList <- underscoreOptions$rowid
-underscoreStyle <- createStyle(fontName = "Arial Narrow", fontSize = "16", valign = "bottom", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-
-for (i in underscoreOptionsList){
-  addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 4, gridExpand = F)
-}
-
-##Styling the table header
-tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDecoration = "bold",
-                                halign = "center", border = c("top","bottom","left","right"), borderColour = "black", borderStyle = "thin")
-addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:4, gridExpand = F)
-
-##Column Width and Row width
-setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 120)
-setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 35)
-setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 35)
-setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 53)
-setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
-
 
 ##Excel Output
 excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
 saveWorkbook(wb, excelOutputName, overwrite = T)
-}
-
 ```
 
