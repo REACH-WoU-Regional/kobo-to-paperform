@@ -136,7 +136,9 @@ tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDe
 
 title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)",
                              "Market Monitoring (MM)",
-                             "Emergency Needs Tracking (ENT)"),
+                             "Emergency Needs Tracking (ENT)",
+                             "Full Profiling NES",
+                             "Light Profiling NES"),
                  multiple = F,
                  title = "Select the title of your Questionnaire")$res
 month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
