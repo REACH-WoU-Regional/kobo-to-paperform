@@ -99,7 +99,12 @@ paperFormEnglish <- paperFormEnglish %>%
 paperFormArabic <- paperFormArabic %>% 
   mutate(`Choices Arabic` = ifelse(is.na(`Choices Arabic`) == T, "____________________",`Choices Arabic`))
 
-paperFormArabic <- paperFormArabic[c(1,6,5,4,3,2)]
+if (relevancySelection == "Included"){
+  paperFormArabic <- paperFormArabic[c(1,6,5,4,3,2)]
+} else {
+  paperFormArabic <- paperFormArabic[c(1,5,4,3,2)]
+}
+
 
 ```
 
