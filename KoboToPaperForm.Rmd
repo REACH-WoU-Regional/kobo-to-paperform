@@ -29,94 +29,147 @@ koboChoices <- read_excel(file, sheet = "choices")
 
 relevancySelection <- dlgList(choices = c("Included", "Not included"), multiple = F, preselect = NULL, title = "Relevancy")$res
 
+hsosHH <- dlgList(choices = c("Yes", "No"), multiple = F, preselect = NULL, title = "Is this HSOS HH")$res
+
 if (relevancySelection == "Included"){
-  if("label::english" %in% colnames(koboQues)){
- ##Creating table 
-exTableEnglish <- koboQues %>% 
-  select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
-  rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
-  filter(!(is.na(Name))) %>% 
-  filter(!(Name %in% c("start","end","today",
-                       "deviceid","subscriberid","SIM serial",
-                       "phone number","audit"))) %>% 
-  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
-exTableArabic <- koboQues %>% 
-  select(type,relevant,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
-  rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`, "Relevancy" = relevant) %>% 
-  filter(!(is.na(Name))) %>% 
-  filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
-  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
-
-  } else {
-   ##Creating table 
-exTableEnglish <- koboQues %>% 
-  select(type,relevant,`label::English`,`hint::English`,`constraint_message::English`) %>% 
-  rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`, "Relevancy" = relevant) %>% 
-  filter(!(is.na(Name))) %>% 
-  filter(!(Name %in% c("start","end","today",
-                       "deviceid","subscriberid","SIM serial",
-                       "phone number","audit"))) %>% 
-  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
-exTableArabic <- koboQues %>% 
-  select(type,relevant,`label::Arabic`,`hint::Arabic`,`constraint_message::Arabic`) %>% 
-  rename("Type" = type, "Name" = `label::Arabic`, "Hint" = `hint::Arabic`, "Constraint" = `constraint_message::Arabic`, "Relevancy" = relevant) %>% 
-  filter(!(is.na(Name))) %>% 
-  filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
-  mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                       ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
- 
-  }
   
-} else {
+  if (hsosHH == "Yes") {
     if("label::english" %in% colnames(koboQues)){
-       ##Creating table 
-  exTableEnglish <- koboQues %>% 
-    select(type,`label::english`,`hint::english`,`constraint_message::english`) %>% 
-    rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`) %>% 
-    filter(!(is.na(Name))) %>% 
-    filter(!(Name %in% c("start","end","today",
-                         "deviceid","subscriberid","SIM serial",
-                         "phone number","audit"))) %>% 
-    mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                         ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-    mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
-  
-  exTableArabic <- koboQues %>% 
-    select(type,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
-    rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`) %>% 
-    filter(!(is.na(Name))) %>% 
-    filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
-    mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                         ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-    mutate(Name = ifelse(Name == "السعر ${Calc_choice_name}", "السعر:",Name))
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,relevant,name,`label::english`,`hint::english`,`constraint_message::english`) %>% 
+        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
+        select(Type,Relevancy, Name, Hint, Constraint)
+      
+      exTableArabic <- koboQues %>% 
+        select(type,relevant,name,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
+        rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
+        select(Type,Relevancy, Name, Hint, Constraint)
+      
+    } else {
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,relevant,name,`label::English`,`hint::English`,`constraint_message::English`) %>% 
+        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
+        select(Type,Relevancy, Name, Hint, Constraint)
+      
+      exTableArabic <- koboQues %>% 
+        select(type,relevant,name,`label::Arabic`,`hint::Arabic`,`constraint_message::Arabic`) %>% 
+        rename("Type" = type, "Name" = `label::Arabic`, "Hint" = `hint::Arabic`, "Constraint" = `constraint_message::Arabic`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
+        select(Type,Relevancy, Name, Hint, Constraint)
+      
+    }
+  } else{
+    if("label::english" %in% colnames(koboQues)){
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
+        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+      exTableArabic <- koboQues %>% 
+        select(type,relevant,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
+        rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+      
+    } else {
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,relevant,`label::English`,`hint::English`,`constraint_message::English`) %>% 
+        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+      exTableArabic <- koboQues %>% 
+        select(type,relevant,`label::Arabic`,`hint::Arabic`,`constraint_message::Arabic`) %>% 
+        rename("Type" = type, "Name" = `label::Arabic`, "Hint" = `hint::Arabic`, "Constraint" = `constraint_message::Arabic`, "Relevancy" = relevant) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
+      
+    }
+  }} else {
+    if("label::english" %in% colnames(koboQues)){
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,`label::english`,`hint::english`,`constraint_message::english`) %>% 
+        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
+      
+      exTableArabic <- koboQues %>% 
+        select(type,`label::arabic`,`hint::arabic`,`constraint_message::arabic`) %>% 
+        rename("Type" = type, "Name" = `label::arabic`, "Hint" = `hint::arabic`, "Constraint" = `constraint_message::arabic`) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        mutate(Name = ifelse(Name == "السعر ${Calc_choice_name}", "السعر:",Name))
     } else{
-    ##Creating table 
-    exTableEnglish <- koboQues %>% 
-      select(type,`label::English`,`hint::English`,`constraint_message::English`) %>% 
-      rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`) %>% 
-      filter(!(is.na(Name))) %>% 
-      filter(!(Name %in% c("start","end","today",
-                           "deviceid","subscriberid","SIM serial",
-                           "phone number","audit"))) %>% 
-      mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                           ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-      mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
+      ##Creating table 
+      exTableEnglish <- koboQues %>% 
+        select(type,`label::English`,`hint::English`,`constraint_message::English`) %>% 
+        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("start","end","today",
+                             "deviceid","subscriberid","SIM serial",
+                             "phone number","audit"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
+      
+      exTableArabic <- koboQues %>% 
+        select(type,`label::Arabic`,`hint::Arabic`,`constraint_message::Arabic`) %>% 
+        rename("Type" = type, "Name" = `label::Arabic`, "Hint" = `hint::Arabic`, "Constraint" = `constraint_message::Arabic`) %>% 
+        filter(!(is.na(Name))) %>% 
+        filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
+        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
+                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
+        mutate(Name = ifelse(Name == "السعر ${Calc_choice_name}", "السعر:",Name))
+    }
     
-    exTableArabic <- koboQues %>% 
-      select(type,`label::Arabic`,`hint::Arabic`,`constraint_message::Arabic`) %>% 
-      rename("Type" = type, "Name" = `label::Arabic`, "Hint" = `hint::Arabic`, "Constraint" = `constraint_message::Arabic`) %>% 
-      filter(!(is.na(Name))) %>% 
-      filter(!(Name %in% c("البداية","النهاية","تاريخ اليوم","رقم الجهاز","رقم المشترك","رقم شريحة التلفون","رقم التلفون","تدقيق"))) %>% 
-      mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                           ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-      mutate(Name = ifelse(Name == "السعر ${Calc_choice_name}", "السعر:",Name))
   }
 
-}
-    
 if("label::english" %in% colnames(koboChoices)){
   ##Choices table
 exChoicesEnglish <- koboChoices %>% 
@@ -160,10 +213,12 @@ paperFormArabic <- exTableArabic %>%
   filter(!(Type %in% c("end_group")))
 
 paperFormEnglish <- paperFormEnglish %>% 
-  mutate(`Choices English` = ifelse(is.na(`Choices English`) == T, "____________________",`Choices English`))
+  mutate(`Choices English` = ifelse(is.na(`Choices English`) == T, "____________________",
+                                    ifelse(Type == "note", "",`Choices English`)))
 
 paperFormArabic <- paperFormArabic %>% 
-  mutate(`Choices Arabic` = ifelse(is.na(`Choices Arabic`) == T, "____________________",`Choices Arabic`))
+  mutate(`Choices Arabic` = ifelse(is.na(`Choices Arabic`) == T, "____________________",
+                                    ifelse(Type == "note", "",`Choices Arabic`)))
 
 if (relevancySelection == "Included"){
   paperFormArabic <- paperFormArabic[c(1,6,5,4,3,2)]
@@ -186,6 +241,11 @@ styleNameAra <- createStyle(fontName = "Arial Narrow", fontSize = 16,
 
 sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
                                halign = "center", fgFill = "#bfbfbf", 
+                           textDecoration = "bold", border = c("top","bottom","left","right"), 
+                           borderColour = "black", borderStyle = "thin")
+
+noteStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                               halign = "center", fgFill = "#EE5757", 
                            textDecoration = "bold", border = c("top","bottom","left","right"), 
                            borderColour = "black", borderStyle = "thin")
 
@@ -217,15 +277,27 @@ titleQues <- paste0(title," ",month," Questionnaire")
 
 rowIdSectionEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
-  filter(Type == "begin_group")
+  filter(Type == "begin group")
     
 rowIdSectionListEng <- rowIdSectionEng$rowid
 
 rowIdSectionAra <- paperFormArabic %>% 
   rowid_to_column() %>% 
-  filter(Type == "begin_group")
+  filter(Type == "begin group")
     
 rowIdSectionListAra <- rowIdSectionAra$rowid
+
+noteSectionEng <- paperFormEnglish %>% 
+  rowid_to_column() %>% 
+  filter(Type == "note")
+
+noteSectionListEng <- noteSectionEng$rowid
+
+noteSectionAra <- paperFormArabic %>% 
+  rowid_to_column() %>% 
+  filter(Type == "note")
+
+noteSectionListAra <- noteSectionAra$rowid
 
 underscoreOptionsEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
@@ -250,7 +322,7 @@ addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
 addWorksheet(wb, sheetName = "paperArabic", zoom = 80)
 
 if (relevancySelection == "Included"){
-
+  
     ##Adding data Headers
     mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:5)
     writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
@@ -293,6 +365,24 @@ if (relevancySelection == "Included"){
       writeData(wb, sheet = "paperArabic", rowIdSectionAra$Name[i], startCol = 1, startRow = sum(rowIdSectionAra$rowid[i] + 2))
     }
     
+    ##Merge English notes
+    for (i in noteSectionListEng){
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
+    }
+    
+    for(i in 1:nrow(noteSectionEng)){
+      writeData(wb, sheet = "paperEnglish", noteSectionEng$Name[i], startCol = 1, startRow = sum(noteSectionEng$rowid[i] + 2))
+    }
+    
+    ##Merge Arabic notes
+    for (i in noteSectionListAra){
+      mergeCells(wb, sheet = "paperArabic", rows = i + 2, cols = 1:5)
+    }
+    
+    for(i in 1:nrow(noteSectionAra)){
+      writeData(wb, sheet = "paperArabic", noteSectionAra$Name[i], startCol = 1, startRow = sum(noteSectionAra$rowid[i] + 2))
+    }
+    
     #Styling
     ##Adding Style for the whole data
     addStyle(wb, "paperEnglish", styleNameEng, cols = 1:5, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
@@ -308,6 +398,18 @@ if (relevancySelection == "Included"){
     for (i in rowIdSectionListAra){
        addStyle(wb, sheet = "paperArabic", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
     }
+    
+    ##note sections
+    #English
+    for (i in noteSectionListEng){
+       addStyle(wb, sheet = "paperEnglish", noteStyle, rows = i + 2, cols = 1:5, gridExpand = F)
+    }
+    
+    #Arabic
+    for (i in noteSectionListAra){
+       addStyle(wb, sheet = "paperArabic", noteStyle, rows = i + 2, cols = 1:5, gridExpand = F)
+    }
+    
     
     ##Styling the title
     addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
@@ -388,6 +490,24 @@ if (relevancySelection == "Included"){
       writeData(wb, sheet = "paperArabic", rowIdSectionAra$Name[i], startCol = 1, startRow = sum(rowIdSectionAra$rowid[i] + 2))
     }
     
+    ##Merge English notes
+    for (i in noteSectionListEng){
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
+    }
+    
+    for(i in 1:nrow(noteSectionEng)){
+      writeData(wb, sheet = "paperEnglish", noteSectionEng$Name[i], startCol = 1, startRow = sum(noteSectionEng$rowid[i] + 2))
+    }
+    
+    ##Merge Arabic notes
+    for (i in noteSectionListAra){
+      mergeCells(wb, sheet = "paperArabic", rows = i + 2, cols = 1:4)
+    }
+    
+    for(i in 1:nrow(noteSectionAra)){
+      writeData(wb, sheet = "paperArabic", noteSectionAra$Name[i], startCol = 1, startRow = sum(noteSectionAra$rowid[i] + 2))
+    }
+    
     #Styling
     ##Adding Style for the whole data
     addStyle(wb, "paperEnglish", styleNameEng, cols = 1:4, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
@@ -402,6 +522,16 @@ if (relevancySelection == "Included"){
     #Arabic
     for (i in rowIdSectionListAra){
        addStyle(wb, sheet = "paperArabic", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
+    }
+    ##Note sections
+    #English
+    for (i in noteSectionListEng){
+       addStyle(wb, sheet = "paperEnglish", noteStyle, rows = i + 2, cols = 1:4, gridExpand = F)
+    }
+    
+    #Arabic
+    for (i in noteSectionListAra){
+       addStyle(wb, sheet = "paperArabic", noteStyle, rows = i + 2, cols = 1:4, gridExpand = F)
     }
     
     ##Styling the title
