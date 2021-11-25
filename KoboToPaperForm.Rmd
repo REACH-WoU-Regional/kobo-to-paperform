@@ -244,8 +244,13 @@ sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
                            textDecoration = "bold", border = c("top","bottom","left","right"), 
                            borderColour = "black", borderStyle = "thin")
 
-noteStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                         halign = "center", fgFill = "#EE5757", 
+noteStyleEng <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                         halign = "left", fgFill = "#fcfcfc", 
+                         textDecoration = "bold", border = c("top","bottom","left","right"), 
+                         borderColour = "black", borderStyle = "thin")
+
+noteStyleAra <- createStyle(fontName = "Arial Narrow", fontSize = 16,
+                         halign = "right", fgFill = "#fcfcfc", 
                          textDecoration = "bold", border = c("top","bottom","left","right"), 
                          borderColour = "black", borderStyle = "thin")
 
@@ -416,12 +421,12 @@ if (relevancySelection == "Included"){
     ##note sections
     #English
     for (i in noteSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", noteStyle, rows = i + 2, cols = 1:5, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:5, gridExpand = F)
     }
     
     #Arabic
     for (i in noteSectionListAra){
-       addStyle(wb, sheet = "paperArabic", noteStyle, rows = i + 2, cols = 1:5, gridExpand = F)
+       addStyle(wb, sheet = "paperArabic", noteStyleAra, rows = i + 2, cols = 1:5, gridExpand = F)
     }
     
     
@@ -540,12 +545,12 @@ if (relevancySelection == "Included"){
     ##Note sections
     #English
     for (i in noteSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", noteStyle, rows = i + 2, cols = 1:4, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:4, gridExpand = F)
     }
     
     #Arabic
     for (i in noteSectionListAra){
-       addStyle(wb, sheet = "paperArabic", noteStyle, rows = i + 2, cols = 1:4, gridExpand = F)
+       addStyle(wb, sheet = "paperArabic", noteStyleAra, rows = i + 2, cols = 1:4, gridExpand = F)
     }
     
     ##Styling the title
