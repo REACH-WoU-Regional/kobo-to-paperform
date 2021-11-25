@@ -245,9 +245,9 @@ sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
                            borderColour = "black", borderStyle = "thin")
 
 noteStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16,
-                               halign = "center", fgFill = "#EE5757", 
-                           textDecoration = "bold", border = c("top","bottom","left","right"), 
-                           borderColour = "black", borderStyle = "thin")
+                         halign = "center", fgFill = "#EE5757", 
+                         textDecoration = "bold", border = c("top","bottom","left","right"), 
+                         borderColour = "black", borderStyle = "thin")
 
 titleStyle <- createStyle(fontName = "Arial Narrow", textDecoration = "bold", fontSize = 18,
                           fgFill = "#ddd9c4", valign = "center", halign = "center", 
@@ -275,17 +275,31 @@ title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)",
 month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
 titleQues <- paste0(title," ",month," Questionnaire")
 
-rowIdSectionEng <- paperFormEnglish %>% 
+if("begin group" %in% paperFormEnglish$Type){
+  rowIdSectionEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
   filter(Type == "begin group")
-    
-rowIdSectionListEng <- rowIdSectionEng$rowid
+  rowIdSectionListEng <- rowIdSectionEng$rowid
 
 rowIdSectionAra <- paperFormArabic %>% 
   rowid_to_column() %>% 
   filter(Type == "begin group")
     
 rowIdSectionListAra <- rowIdSectionAra$rowid
+}else{
+  rowIdSectionEng <- paperFormEnglish %>% 
+  rowid_to_column() %>% 
+  filter(Type == "begin_group")
+    
+rowIdSectionListEng <- rowIdSectionEng$rowid
+
+rowIdSectionAra <- paperFormArabic %>% 
+  rowid_to_column() %>% 
+  filter(Type == "begin_group")
+    
+rowIdSectionListAra <- rowIdSectionAra$rowid
+
+}
 
 noteSectionEng <- paperFormEnglish %>% 
   rowid_to_column() %>% 
