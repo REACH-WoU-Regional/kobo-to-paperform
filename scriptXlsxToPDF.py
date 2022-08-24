@@ -6,7 +6,7 @@ xlApp = win32com.client.Dispatch("Excel.Application")
 
 xlApp.Visible = False
 
-wb_path = r'C:\Users\LAP-338\SynologyDrive\git\kobo-to-paperform\Humanitarion_Situation_Overview_Syria_(HSOS)_October_2021_Questionnaire.xlsx'
+wb_path = r'C:\Users\LAP-338\OneDrive - ACTED\git\kobo-to-paperform\MSNA_Slovakia_August_2022_Questionnaire.xlsx'
 
 
 excelFile = xlApp.Workbooks.Open(wb_path)
