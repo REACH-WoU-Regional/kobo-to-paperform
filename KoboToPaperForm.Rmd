@@ -7,148 +7,69 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(sf,tidyverse, readxl, cowplot, DT, dplyr, utils, rlang,expss, ggplot2, data.table, openxlsx, svDialogs, tcltk)
 
 # Set directory
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
 rm(list = ls())
+source("src/kobo_utils.R")
+```
 
+```{r}
+## Update the list of metadata or questions that you would like to remove from your questionnaire
 list.to.remove <- c("start","end","today","deviceid","subscriberid","SIM serial","phone number","audit")
 ##Choosing the kobo form
-file <- choose.files("Please select the Kobo tool")
+# file <- choose.files("Please select the Kobo tool") ## Do not work on a MAC
+dlg_message("Please select the Kobo tool XLS Format")
+file <- file.choose()
+label_colname <- load.label_colname(file)
+hint_colname <- gsub("label","hint",label_colname)
+constraint_colname <- gsub("label","constraint_message",label_colname)
 
 ##Read questions
-koboQues <- read_excel(file, sheet = "survey")
+koboQues <- load.tool.survey(file)
 
 ##Read Choices
-koboChoices <- read_excel(file, sheet = "choices")
+koboChoices <- load.tool.choices(file)
 
 relevancySelection <- dlgList(choices = c("Included", "Not included"), multiple = F, preselect = NULL, title = "Relevancy")$res
 
-hsosHH <- dlgList(choices = c("Yes", "No"), multiple = F, preselect = NULL, title = "Is this HSOS HH")$res
+```
 
+```{r}
 if (relevancySelection == "Included"){
-  
-  if (hsosHH == "Yes") {
-    if("label::english" %in% colnames(koboQues)){
       ##Creating table 
       exTableEnglish <- koboQues %>% 
-        select(type,relevant,name,`label::english`,`hint::english`,`constraint_message::english`) %>% 
-        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
+        select(q.type,relevant,label_colname,hint_colname,constraint_colname,list_name) %>% 
+        rename("Type" = q.type, "Name" = label_colname, "Hint" = hint_colname, "Constraint" = constraint_colname, "Relevancy" = relevant) %>% 
         filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% list.to.remove)) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
-        select(Type,Relevancy, Name, Hint, Constraint)
-      
-      
-      
-    } else {
-      ##Creating table 
+        filter(!(Name %in% list.to.remove))
+      } else {
+   #Creating table 
       exTableEnglish <- koboQues %>% 
-        select(type,relevant,name,`label::English`,`hint::English`,`constraint_message::English`) %>% 
-        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`, "Relevancy" = relevant) %>% 
+        select(q.type,label_colname,hint_colname,constraint_colname,list_name) %>% 
+        rename("Type" = q.type, "Name" = label_colname, "Hint" = hint_colname, "Constraint" = constraint_colname) %>% 
         filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% list.to.remove)) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-        filter(!(Type == "note" & str_detect(name, "_intro") == FALSE)) %>% 
-        select(Type,Relevancy, Name, Hint, Constraint)
-      
-    }
-  } else{
-    if("label::english" %in% colnames(koboQues)){
-      ##Creating table 
-      exTableEnglish <- koboQues %>% 
-        select(type,relevant,`label::english`,`hint::english`,`constraint_message::english`) %>% 
-        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`, "Relevancy" = relevant) %>% 
-        filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% list.to.remove)) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
-      
-    } else {
-      ##Creating table 
-      exTableEnglish <- koboQues %>% 
-        select(type,relevant,`label::English`,`hint::English`,`constraint_message::English`) %>% 
-        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`, "Relevancy" = relevant) %>% 
-        filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% list.to.remove)) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type)))
-      
-    }
-  }} else {
-    if("label::english" %in% colnames(koboQues)){
-      ##Creating table 
-      exTableEnglish <- koboQues %>% 
-        select(type,`label::english`,`hint::english`,`constraint_message::english`) %>% 
-        rename("Type" = type, "Name" = `label::english`, "Hint" = `hint::english`, "Constraint" = `constraint_message::english`) %>% 
-        filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% c("start","end","today",
-                             "deviceid","subscriberid","SIM serial",
-                             "phone number","audit"))) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-        mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
-      
-    } else{
-      ##Creating table 
-      exTableEnglish <- koboQues %>% 
-        select(type,`label::English`,`hint::English`,`constraint_message::English`) %>% 
-        rename("Type" = type, "Name" = `label::English`, "Hint" = `hint::English`, "Constraint" = `constraint_message::English`) %>% 
-        filter(!(is.na(Name))) %>% 
-        filter(!(Name %in% c("start","end","today",
-                             "deviceid","subscriberid","SIM serial",
-                             "phone number","audit"))) %>% 
-        mutate(Type = ifelse(str_detect(Type, "select_one") == T, gsub("select_one ","",Type),
-                             ifelse(str_detect(Type, "select_multiple") == T, gsub("select_multiple ","",Type),Type))) %>% 
-        mutate(Name = ifelse(Name == "Price (${Calc_choice_name})", "Price:",Name))
-      
-
-    }
-    
-  }
-
-if("label::english" %in% colnames(koboChoices)){
-  ##Choices table
-exChoicesEnglish <- koboChoices %>% 
-  select(list_name, `label::english`) %>% 
-  filter(!(is.na(list_name))) %>% 
-  group_by(list_name) %>% 
-  summarise_all(funs(toString(na.omit(.)))) %>% 
-  rename("Type" = list_name, "Choices English" = `label::english`)
-
-
-} else {
-  ##Choices table
-exChoicesEnglish <- koboChoices %>% 
-  select(list_name, `label::English`) %>% 
-  filter(!(is.na(list_name))) %>% 
-  group_by(list_name) %>% 
-  summarise_all(funs(toString(na.omit(.)))) %>% 
-  rename("Type" = list_name, "Choices English" = `label::English`)
-
+        filter(!Name %in% list.to.remove)
 }
+    
+exChoicesEnglish <- koboChoices %>% 
+  select(list_name, label_colname) %>% 
+  filter(!(is.na(list_name))) %>% 
+  group_by(list_name) %>% 
+  summarise_all(funs(toString(na.omit(.)))) %>% 
+  rename("Type" = list_name, "Choices English" = label_colname)
 
 ##combined table
 paperFormEnglish <- exTableEnglish %>% 
-  left_join(exChoicesEnglish, by= "Type") %>% 
+  left_join(exChoicesEnglish, by= c("list_name"="Type")) %>% 
   filter(!(Type %in% c("end_group")))
-
 
 paperFormEnglish <- paperFormEnglish %>% 
   mutate(`Choices English` = ifelse(is.na(`Choices English`) == T, "____________________",
-                                    ifelse(Type == "note", "",`Choices English`)))
-
-
-
+                                    ifelse(Type == "note", "",`Choices English`))) %>% 
+  select(-list_name)
 ```
 
 ```{r}
@@ -162,6 +83,7 @@ sectionHead <- createStyle(fontName = "Arial Narrow", fontSize = 16,
                                halign = "center", fgFill = "#bfbfbf", 
                            textDecoration = "bold", border = c("top","bottom","left","right"), 
                            borderColour = "black", borderStyle = "thin")
+
 
 noteStyleEng <- createStyle(fontName = "Arial Narrow", fontSize = 16,
                          halign = "left", fgFill = "#fcfcfc", 
@@ -185,15 +107,8 @@ tableHeaderStyle <- createStyle(fontName = "Arial Narrow", fontSize = 16, textDe
 ##Extra Add-ons for the output
 ##Setting up the title for the questionnaire
 
-title <- dlgList(choices = c("Humanitarion Situation Overview Syria (HSOS)",
-                             "Market Monitoring (MM)",
-                             "Emergency Needs Tracking (ENT)",
-                             "Full Profiling NES",
-                             "Light Profiling NES",
-                             "MSNA Slovakia"),
-                 multiple = F,
-                 title = "Select the title of your Questionnaire")$res
-month <- dlgInput("Enter the month of data collection round and year in this format (October 2021)")$res
+title <- dlgInput("Enter the title of your Questionnaire")$res
+month <- dlgInput("Enter the month of data collection round and year in this format (October 2022)")$res
 titleQues <- paste0(title," ",month," Questionnaire")
 
 if("begin group" %in% paperFormEnglish$Type){
@@ -227,7 +142,6 @@ underscoreOptionsListEng <- underscoreOptionsEng$rowid
 
 
 ```{r}
-
 ##Output Creation
 wb <- createWorkbook()
     
@@ -238,35 +152,33 @@ addWorksheet(wb, sheetName = "paperEnglish", zoom = 80)
 if (relevancySelection == "Included"){
   
     ##Adding data Headers
-    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:5)
+    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:6)
     writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
 
     
     #English
     for (i in 1:length(colnames(paperFormEnglish))){
-      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i], startRow = 2, startCol = i)  
     }
 
 
     ##Adding data table English
     for (i in 1:nrow(paperFormEnglish)){
-      writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:6], startRow = 2 + i, colNames = F)
+      writeData(wb, "paperEnglish", x = paperFormEnglish[i,1:6], startRow = 2 + i, colNames = F)
     }
 
     ##Merge English beginning of section and adding data
     for (i in rowIdSectionListEng){
-      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:6)
     }
     
     for(i in 1:nrow(rowIdSectionEng)){
       writeData(wb, sheet = "paperEnglish", rowIdSectionEng$Name[i], startCol = 1, startRow = sum(rowIdSectionEng$rowid[i] + 2))
     }
     
-
-    
     ##Merge English notes
     for (i in noteSectionListEng){
-      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:6)
     }
     
     for(i in 1:nrow(noteSectionEng)){
@@ -276,13 +188,13 @@ if (relevancySelection == "Included"){
     
     #Styling
     ##Adding Style for the whole data
-    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:5, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
+    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:6, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
     
     
     ##Styling sections
     #English
     for (i in rowIdSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:6, gridExpand = F)
     }
     
 
@@ -290,23 +202,23 @@ if (relevancySelection == "Included"){
     ##note sections
     #English
     for (i in noteSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:5, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:6, gridExpand = F)
     }
 
     
     
     ##Styling the title
-    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
+    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:6, gridExpand = F)
 
     ##Styling the empty cells in Choices English
     for (i in underscoreOptionsListEng){
-      addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 5, gridExpand = F)
+      addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 6, gridExpand = F)
     }
     
 
     
     ##Styling the table header
-    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:5, gridExpand = F)
+    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:6, gridExpand = F)
 
     
     ##Column Width and Row width English
@@ -315,6 +227,7 @@ if (relevancySelection == "Included"){
     setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 15)
     setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 20)
     setColWidths(wb, sheet = "paperEnglish", cols = 5, widths = 53)
+    setColWidths(wb, sheet = "paperEnglish", cols = 6, widths = 53)
     setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
     
 
@@ -323,36 +236,34 @@ if (relevancySelection == "Included"){
     ##Adding data Headers
     
     ##Setting up the title for the questionnaire
-    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:4)
+    mergeCells(wb, sheet = "paperEnglish", rows = 1, cols = 1:5)
     writeData(wb, sheet = "paperEnglish", titleQues, startCol = 1, startRow = 1)
 
     
     #English
     for (i in 1:length(colnames(paperFormEnglish))){
-      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i + 1], startRow = 2, startCol = i)  
+      writeData(wb, "paperEnglish", x = colnames(paperFormEnglish)[i], startRow = 2, startCol = i)  
     }
 
     
     ##Adding data table English
     for (i in 1:nrow(paperFormEnglish)){
-      writeData(wb, "paperEnglish", x = paperFormEnglish[i,2:5], startRow = 2 + i, colNames = F)
+      writeData(wb, "paperEnglish", x = paperFormEnglish[i,1:5], startRow = 2 + i, colNames = F)
     }
 
     
     ##Merge English beginning of section and adding data
     for (i in rowIdSectionListEng){
-      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
     }
     
     for(i in 1:nrow(rowIdSectionEng)){
       writeData(wb, sheet = "paperEnglish", rowIdSectionEng$Name[i], startCol = 1, startRow = sum(rowIdSectionEng$rowid[i] + 2))
     }
-    
-
-    
+   
     ##Merge English notes
     for (i in noteSectionListEng){
-      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:4)
+      mergeCells(wb, sheet = "paperEnglish", rows = i + 2, cols = 1:5)
     }
     
     for(i in 1:nrow(noteSectionEng)){
@@ -363,48 +274,49 @@ if (relevancySelection == "Included"){
     
     #Styling
     ##Adding Style for the whole data
-    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:4, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
+    addStyle(wb, "paperEnglish", styleNameEng, cols = 1:5, rows = 3:sum(nrow(paperFormEnglish) + 2), gridExpand = T)
   
     
     ##Styling sections
     #English
     for (i in rowIdSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:4, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", sectionHead, rows = i + 2, cols = 1:5, gridExpand = F)
     }
 
     ##Note sections
     #English
     for (i in noteSectionListEng){
-       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:4, gridExpand = F)
+       addStyle(wb, sheet = "paperEnglish", noteStyleEng, rows = i + 2, cols = 1:5, gridExpand = F)
     }
     
 
     ##Styling the title
-    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:4, gridExpand = F)
+    addStyle(wb, sheet = "paperEnglish",titleStyle, rows = 1, cols = 1:5, gridExpand = F)
 
-    
-    ##Styling the empty cells in Choices English
-    for (i in underscoreOptionsListEng){
-      addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 4, gridExpand = F)
-    }
+    # 
+    # ##Styling the empty cells in Choices English
+    # for (i in underscoreOptionsListEng){
+    #   addStyle(wb, sheet = "paperEnglish", underscoreStyle, rows = i + 2, cols = 5, gridExpand = F)
+    # }
 
     
     ##Styling the table header
-    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:4, gridExpand = F)
+    addStyle(wb, sheet = "paperEnglish", tableHeaderStyle, rows = 2, cols = 1:5, gridExpand = F)
 
     
     ##Column Width and Row width
-    setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 120)
-    setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 35)
+    setColWidths(wb, sheet = "paperEnglish", cols = 1, widths = 35)
+    setColWidths(wb, sheet = "paperEnglish", cols = 2, widths = 120)
     setColWidths(wb, sheet = "paperEnglish", cols = 3, widths = 35)
     setColWidths(wb, sheet = "paperEnglish", cols = 4, widths = 53)
+    setColWidths(wb, sheet = "paperEnglish", cols = 5, widths = 53)
     setRowHeights(wb, sheet = "paperEnglish", rows = 1, heights = 44)
     
 
 }
 
 ##Excel Output
-excelOutputName <- paste0(gsub(" ","_",titleQues),".xlsx")
+excelOutputName <- paste0("output/",gsub(" ","_",titleQues),".xlsx")
 saveWorkbook(wb, excelOutputName, overwrite = T)
 ```
 
