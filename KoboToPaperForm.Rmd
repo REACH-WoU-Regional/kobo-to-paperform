@@ -23,7 +23,12 @@ list.to.remove <- c("start","end","today","deviceid","subscriberid","SIM serial"
 # file <- choose.files("Please select the Kobo tool") ## Do not work on a MAC
 dlg_message("Please select the Kobo tool XLS Format")
 file <- file.choose()
-label_colname <- load.label_colname(file)
+if("label::Engligh" == load.label_colname(file)){
+  label_colname <- "label::English"
+} else{
+  label_colname <- dlgInput("Enter the language to use (Usually after `label::...`)")$res
+}
+
 hint_colname <- gsub("label","hint",label_colname)
 constraint_colname <- gsub("label","constraint_message",label_colname)
 
